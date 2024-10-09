@@ -21,3 +21,6 @@ dependencyResolutionManagement {
 rootProject.name = 'HookDemo'
 include(":hook_xposed")
 project(":hook_xposed").projectDir = file("./app")
+
+include(":app")
+project(":app").projectDir = file("./demo")
