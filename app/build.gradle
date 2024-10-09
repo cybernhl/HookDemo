@@ -1,10 +1,20 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
-
+    compileSdkVersion 35
+    lintOptions {
+        warningsAsErrors true
+        abortOnError true
+        disable 'MissingTranslation',
+                'ExtraTranslation',
+                'TypographyEllipsis',
+                'UnspecifiedImmutableFlag',
+                'UnusedResources',
+                'TypographyDashes'
+    }
 
     defaultConfig {
+        namespace "com.hyb.hookdemo"
         applicationId "com.hyb.hookdemo"
         minSdkVersion 15
         targetSdkVersion 28
