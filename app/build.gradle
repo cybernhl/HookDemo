@@ -1,3 +1,7 @@
+plugins {
+    id 'kotlin-android'
+}
+
 apply plugin: 'com.android.application'
 
 android {
@@ -15,7 +19,7 @@ android {
 
     defaultConfig {
         namespace "com.hyb.hookdemo"
-        applicationId "com.hyb.hookdemo"
+        applicationId "com.hyb.hookdemo.xposed"
         minSdkVersion 15
         targetSdkVersion 28
         versionCode 1
@@ -30,7 +34,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
 }
 
 dependencies {
