@@ -13,8 +13,8 @@ public class HookTest implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        String hookPackageName = "com.hyb.hookdemo";
-        if (hookPackageName.equals(lpparam.packageName)) {
+        String target_hook_applicationId = "com.hyb.hookdemo.app";
+        if (target_hook_applicationId.equals(lpparam.packageName)) {
             XposedBridge.log("已成功Hook到HookDemo应用");
             Class clazz = lpparam.classLoader.loadClass("com.hyb.hookdemo.MainActivity");
             XposedHelpers.findAndHookMethod(clazz, "toastMsg", new XC_MethodHook() {
