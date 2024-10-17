@@ -15,6 +15,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
  * Created by wangw on 2018/2/13.
+ * https://github.com/wwwtete/XposedDemo
  */
 
 public class Main_DEX implements IXposedHookLoadPackage {
@@ -68,7 +69,7 @@ public class Main_DEX implements IXposedHookLoadPackage {
                     if (param.method.getName().equals("loadClass")){
                         Class result = (Class) param.getResult();
                         byte[] arr = (byte[]) mDex_getBytes.invoke(mGetDex.invoke(result));
-                        File file = new File(mSp.getString(MainActivity.KEY_DIR, "/sdcard"), mPkName + "_" + arr.length + ".dex");
+                        File file = new File(mSp.getString("dir", "/sdcard"), mPkName + "_" + arr.length + ".dex");
                         if (file.exists()){
                             file.delete();
                         }
