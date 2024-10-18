@@ -1,5 +1,7 @@
 package com.hyb.hookdemo;
 
+import static com.hyb.hookdemo.OkCompat.F_Builder_interceptors;
+
 import android.app.Activity;
 import android.app.Application;
 import android.app.Service;
@@ -16,22 +18,27 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam;
-import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
+import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
+import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
+import static de.robv.android.xposed.XposedHelpers.getObjectField;
+
+import okhttp3.logging.HttpLoggingInterceptor;
 import timber.log.Timber;
 
 import android.annotation.SuppressLint;
-
 import android.content.Context;
 import android.content.ContextWrapper;
 
+
+import java.util.List;
 
 import okhttp3.internal.http.RealInterceptorChain;
 
 /**
  * @author Mr.HuaYunBin
  */
-public class HookUtils implements IXposedHookLoadPackage , IXposedHookZygoteInit {
+public class HookUtils implements IXposedHookLoadPackage, IXposedHookZygoteInit {
     private static final String TAG = "HookUtils";
     private static final boolean ENABLE_LOG_HOOKER = true;
     private static final byte[] lock = new byte[1];
@@ -46,10 +53,13 @@ public class HookUtils implements IXposedHookLoadPackage , IXposedHookZygoteInit
             hookXposedFrameworkApi(startupParam);
         }
     }
+
     /**
      * 用于分析第三方 XP 模块采用了哪些钩子，主要用于模块包体比较大，
      * 做了加固或者混淆做得比较彻底的场景
      * <p>
+     * Ref : https://github.com/WuFengXue
+     * Ref : https://wufengxue.github.io/2019/11/01/get-3rd-xp-module-hookers.html
      * 钩子的目标类和方法名，可在 Xposed Installer 的日志中查看
      */
     private void hookXposedFrameworkApi(StartupParam param) {
@@ -64,73 +74,59 @@ public class HookUtils implements IXposedHookLoadPackage , IXposedHookZygoteInit
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         Timber.plant(new Timber.DebugTree());//FIXME init for Hook module
         String target_hook_applicationId = "com.hyb.hookdemo.app";
+//        String target_hook_applicationId = "com.lang.lang";
         if (target_hook_applicationId.equals(lpparam.packageName)) {
-            Timber.e("Show me !!!!已成功Hook到HookDemo应用");
-            XposedBridge.log("已成功Hook到HookDemo应用");
-            Class clazz = lpparam.classLoader.loadClass("com.hyb.hookdemo.MainActivity");
-            XposedHelpers.findAndHookMethod(clazz, "toastMsg", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
-                    super.beforeHookedMethod(param);
-                    Log.e(TAG, "Show me beforeHookedMethod"  );
-                }
-
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    param.setResult("你被劫持啦");
-                    Log.e(TAG, "Show me afterHookedMethod"  );
-                }
-            });
-            //hookOriginNewCall(lpparam);
-            XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook() {
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    final ClassLoader cl = ((Context) param.args[0]).getClassLoader();
-
-                    Class<?> aClass = cl.loadClass("okhttp3.OkHttpClient");
-                    Class<?> requestClass = cl.loadClass("okhttp3.Request");
-                    findAndHookMethod(aClass, "newCall", requestClass, new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                            super.beforeHookedMethod(param);
-                            try {
-                                //okhttp3.Request cannot be cast to okhttp3.Request
-                                String str = toJson(param.args[0]);
-                                Log.i(TAG, "request json string " + str);
-                                //Request request = gson.fromJson(str, Request.class);
-                                //set result 修改请求参数
-                            } catch (Throwable e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                            Log.i(TAG, "OkHttpClient afterHookedMethod package name = " + lpparam.packageName);
-                        }
-                    });
-                }
-            });
+            Timber.e("Show me !!!!已成功Hook到HookDemo应用%s", target_hook_applicationId);
+            hookGetPackageManager(lpparam);
+            hookOriginNewCall(lpparam);
+            ClassLoader classLoader=lpparam.classLoader;
+//            OkHttpHooker.attach(classLoader);//FIXME demo hook Interceptor Ref :https://github.com/siyujie/OkHttpLoggerInterceptor-hook/blob/master/app/src/main/java/com/singleman/okhttploggerinterceptor/MainHook.java
         }
     }
 
+    private void hookGetPackageManager(XC_LoadPackage.LoadPackageParam lpparam) {
+//            Class clazz = lpparam.classLoader.loadClass("com.hyb.hookdemo.MainActivity");//FIXME if use "lpparam.classLoader" need "throws Throwable"
+//            XposedHelpers.findAndHookMethod(clazz, "toastMsg", new XC_MethodHook() {
+        XposedHelpers.findAndHookMethod("com.hyb.hookdemo.MainActivity", lpparam.classLoader, "toastMsg", new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+                Log.e(TAG, "Show me Yooo");
+            }
+
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                Log.e(TAG, "Show me YoooKKK");
+                param.setResult("你被劫持啦");
+            }
+        });
+    }
 
     private void hookOriginNewCall(final LoadPackageParam lp) {
         XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 final ClassLoader cl = ((Context) param.args[0]).getClassLoader();
-
+                Class Builder = cl.loadClass("okhttp3.OkHttpClient$Builder");//FIXME  okhttp3.OkHttpClient$Builder is not  proguard if use proguard must use other  like a.d.c
+                Timber.e("Show me  get Builder !!! ");
                 Class<?> aClass = cl.loadClass("okhttp3.OkHttpClient");
                 Class<?> requestClass = cl.loadClass("okhttp3.Request");
                 findAndHookMethod(aClass, "newCall", requestClass, new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         super.beforeHookedMethod(param);
+                        List interceptors = (List) getObjectField(param.thisObject, F_Builder_interceptors);
+                        //添加自己的过滤器
+//                    interceptors.add(new MyInterceptor.Builder()
+//                            .addHeader("customHeaderKey","customHeaderValue")
+//                            .addQueryParam("customQueryKey","customQueryValue")
+//                            .build(classLoader));
+                        Timber.e("Show me  get interceptors size %s", interceptors.size());
+
                         try {
                             //okhttp3.Request cannot be cast to okhttp3.Request
                             String str = toJson(param.args[0]);
-                            Log.i(TAG, "request json string " + str);
+                            Timber.e("Show me  get request json string %s", str);
                             //Request request = gson.fromJson(str, Request.class);
                             //set result 修改请求参数
                         } catch (Throwable e) {
@@ -148,31 +144,7 @@ public class HookUtils implements IXposedHookLoadPackage , IXposedHookZygoteInit
     }
 
 
-    private void hookGetPackageManager(XC_LoadPackage.LoadPackageParam lpparam) {
-        String target_hook_applicationId = "com.hyb.hookdemo.app";
-        if (target_hook_applicationId.equals(lpparam.packageName)) {
-            Timber.e("Show me !!!!已成功Hook到HookDemo应用");
-            XposedBridge.log("已成功Hook到HookDemo应用");
-            //FIXME finish hook all run at memory !! so  not Logcat !!
-//            Class clazz = lpparam.classLoader.loadClass("com.hyb.hookdemo.MainActivity");//FIXME if use "lpparam.classLoader" need "throws Throwable"
-//            XposedHelpers.findAndHookMethod(clazz, "toastMsg", new XC_MethodHook() {
-            XposedHelpers.findAndHookMethod("com.hyb.hookdemo.MainActivity", lpparam.classLoader, "toastMsg", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
-                    super.beforeHookedMethod(param);
-                    Log.e(TAG,"Show me Yooo");
-                }
 
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    Log.e(TAG,"Show me YoooKKK");
-                    param.setResult("你被劫持啦");
-                }
-            });
-        }else {
-            return;
-        }
-    }
 
 
     private void hookXpFindAndHookMethod() {

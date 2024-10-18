@@ -43,21 +43,18 @@ public class OkHttpHooker {
             if(null == OkHttpClient_BuilderClass){
                 return;
             }
-            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
+
             findAndHookMethod(OkHttpClient_BuilderClass, M_Builder_build, new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     super.beforeHookedMethod(param);
                     List interceptors = (List) getObjectField(param.thisObject, F_Builder_interceptors);
                     //添加自己的过滤器
-//                    interceptors.add(new MyInterceptor.Builder()
-//                            .addHeader("customHeaderKey","customHeaderValue")
-//                            .addQueryParam("customQueryKey","customQueryValue")
-//                            .build(classLoader));
+                    interceptors.add(new MyInterceptor.Builder()
+                            .addHeader("customHeaderKey","customHeaderValue")
+                            .addQueryParam("customQueryKey","customQueryValue")
+                            .build(classLoader));
 
-                    interceptors.add(new MyInterceptor.Builder().build(classLoader));
-                    interceptors.add(logging);
                 }
             });
         } catch (ClassNotFoundException e) {

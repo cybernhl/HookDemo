@@ -38,6 +38,8 @@ public class MyInterceptor {
     }
 
     private Object newInterceptor(final ClassLoader classLoader){
+        //FIXME crash java.lang.NoSuchMethodException: okhttp3.internal.http.RealInterceptorChain.proceed
+        //FIXME okhttp 4.xx.xx lost  RealInterceptorChain
         Class<?> InterceptorClass = findClass(Cls_Interceptor, classLoader);
         Object myInterceptor = Proxy.newProxyInstance(classLoader, new Class[]{InterceptorClass}, new InvocationHandler() {
             @Override
